@@ -5,28 +5,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def setup_schema():
-    client = weaviate.Client(url=os.getenv("WEAVIATE_URL"))
+    # Connect using v4 Client
+    client = weaviate.connect_to_local() 
     
-    class_obj = {
-        "class": "SentioTransaction",
-        "description": "Financial transactions with cognitive and sentiment metrics",
-        "vectorizer": "text2vec-openai", 
-        "properties": [
-            {"name": "transaction_id", "dataType": ["string"]},
-            {"name": "category", "dataType": ["string"]},
-            {"name": "amount", "dataType": ["number"]},
-            {"name": "cognitive_load_score", "dataType": ["number"]},
-            {"name": "decision_quality", "dataType": ["number"]},
-            {"name": "prediction_confidence", "dataType": ["number"]},
-            {"name": "transaction_type", "dataType": ["string"]}
-        ]
-    }
-
-    if client.schema.exists("SentioTransaction"):
-        client.schema.delete_class("SentioTransaction")
+    # Define collection (formerly 'class')
+    if client.collections.exists("SentioTransaction"):
+        client.collections.delete("SentioTransaction")
         
-    client.schema.create_class(class_obj)
+    client.collections.create(
+        name="SentioTransaction",
+        vectorizer_config=weaviate.classes.config.Configure.Vectorizer.text2vec_openai(),
+        properties=[
+            weaviate.classes.config.Property(name="transaction_id", data_type=weaviate.classes.config.DataType.TEXT),
+            weaviate.classes.config.Property(name="category", data_type=weaviate.classes.config.DataType.TEXT),
+            weaviate.classes.config.Property(name="amount", data_type=weaviate.classes.config.DataType.NUMBER),
+            weaviate.classes.config.Property(name="cognitive_load_score", data_type=weaviate.classes.config.DataType.NUMBER),
+            weaviate.classes.config.Property(name="decision_quality", data_type=weaviate.classes.config.DataType.NUMBER),
+            weaviate.classes.config.Property(name="transaction_type", data_type=weaviate.classes.config.DataType.TEXT),
+        ]
+    )
     print("✅ Schema created: SentioTransaction")
+    client.close()
 
 if __name__ == "__main__":
     setup_schema()
