@@ -1,0 +1,14 @@
+services:
+  weaviate:
+    image: semitechnologies/weaviate:latest   # ✅ fixed
+    ports:
+      - 8081:8080                             # ✅ correct mapping
+      - 50051:50051
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      ENABLE_MODULES: 'text2vec-ollama,generative-ollama'
+      OLLAMA_API_ENDPOINT: 'http://host.docker.internal:11434'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
