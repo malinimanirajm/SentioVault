@@ -1,44 +1,77 @@
 import pandas as pd
 import weaviate
-import os
 from weaviate.util import generate_uuid5
-from dotenv import load_dotenv
+import sys
 
-load_dotenv()
+def ingest_data(csv_path):
+    # Using a context manager ('with') ensures the connection closes even if there's an error
+    try:
+        client = weaviate.connect_to_local(port=8081)
+    except Exception as e:
+        print(f"❌ Could not connect to Weaviate: {e}")
+        return
 
-def ingest_to_sentio_vault(csv_file_path):
-    client = weaviate.connect_to_local()
-    df = pd.read_csv(csv_file_path)
-    
-    # Fix the typo from previous version & handle NaNs
-    df = df.rename(columns={'Cognitivre_Load_Score': 'cognitive_load_score'}) 
-    df = df.fillna({'decision_quality': 0.0, 'cognitive_load_score': 0.0, 'Amount': 0.0})
+    try:
+        df = pd.read_csv(csv_path)
+        
+        # 1. Normalize Column Names (Remove hidden spaces and make lowercase)
+        df.columns = [c.strip().lower() for c in df.columns]
+        print(f"📊 Detected columns: {df.columns.tolist()}")
 
-    collection = client.collections.get("SentioTransaction")
-    
-    objects = []
-    for _, row in df.iterrows():
-        data_properties = {
-            "transaction_id": str(row["Transaction_ID"]),
-            "category": str(row["Category"]),
-            "amount": float(row["Amount"]),
-            "cognitive_load_score": float(row["cognitive_load_score"]),
-            "decision_quality": float(row["Decision_Quality"]),
-            "transaction_type": str(row["Transaction_Type"])
+        # 2. Flexible Mapping
+        # This maps what's in your CSV (left) to what Weaviate expects (right)
+        mapping = {
+            'transaction_id': 'transaction_id',
+            'category': 'category',
+            'amount': 'amount',
+            'cognitivre_load_score': 'cognitive_load_score', # catching the common typo
+            'cognitive_load_score': 'cognitive_load_score',
+            'decision_quality': 'decision_quality',
+            'transaction_type': 'transaction_type'
         }
-        objects.append(weaviate.classes.data.DataObject(
-            properties=data_properties,
-            uuid=generate_uuid5(data_properties["transaction_id"])
-        ))
+        
+        # Rename based on lowercase versions
+        df = df.rename(columns=mapping)
+        df = df.fillna(0.0)
 
-    print(f"🚀 Ingesting {len(objects)} records...")
-    result = collection.data.insert_many(objects)
-    
-    if result.has_errors:
-        print(f"❌ Ingestion had errors: {result.errors}")
-    else:
-        print("✅ Ingestion Complete!")
-    client.close()
+        collection = client.collections.get("SentioTransaction")
+        
+        objects = []
+        for index, row in df.iterrows():
+            try:
+                props = {
+                    "transaction_id": str(row["transaction_id"]),
+                    "category": str(row["category"]),
+                    "amount": float(row["amount"]),
+                    "cognitive_load_score": float(row["cognitive_load_score"]),
+                    "decision_quality": float(row["decision_quality"]),
+                    "transaction_type": str(row["transaction_type"])
+                }
+                objects.append(weaviate.classes.data.DataObject(
+                    properties=props,
+                    uuid=generate_uuid5(props["transaction_id"])
+                ))
+            except KeyError as e:
+                print(f"❌ Missing expected column in CSV: {e}")
+                print(f"Looked for: {e} but it wasn't found after normalization.")
+                return
+
+        print(f"🚀 Ingesting {len(objects)} financial records...")
+        result = collection.data.insert_many(objects)
+        
+        if result.has_errors:
+            print(f"❌ Errors during ingestion: {result.errors}")
+        else:
+            print("✅ Ingestion Complete.")
+
+    except FileNotFoundError:
+        print(f"❌ File not found: {csv_path}")
+    except Exception as e:
+        print(f"❌ An unexpected error occurred: {e}")
+    finally:
+        client.close()
+        print("🔌 Weaviate connection closed.")
 
 if __name__ == "__main__":
-    ingest_to_sentio_vault("financial_data_2024_2025.csv")
+    # Ensure the file name matches your actual file
+    ingest_data("financial_hci_dataset.csv")

@@ -1,31 +1,47 @@
 import weaviate
-import os
-from dotenv import load_dotenv
+from weaviate.classes.config import Configure, DataType, Property
 
-load_dotenv()
-
-def setup_schema():
-    # Connect using v4 Client
-    client = weaviate.connect_to_local() 
+def setup_sentio_vault():
+    client = weaviate.connect_to_local(port=8081)
     
-    # Define collection (formerly 'class')
+    # 1. Transaction Collection (Knowledge Graph Node)
     if client.collections.exists("SentioTransaction"):
         client.collections.delete("SentioTransaction")
         
     client.collections.create(
         name="SentioTransaction",
-        vectorizer_config=weaviate.classes.config.Configure.Vectorizer.text2vec_openai(),
+        vectorizer_config=Configure.Vectorizer.text2vec_ollama(
+            api_endpoint="http://host.docker.internal:11434",
+            model="nomic-embed-text",
+        ),
         properties=[
-            weaviate.classes.config.Property(name="transaction_id", data_type=weaviate.classes.config.DataType.TEXT),
-            weaviate.classes.config.Property(name="category", data_type=weaviate.classes.config.DataType.TEXT),
-            weaviate.classes.config.Property(name="amount", data_type=weaviate.classes.config.DataType.NUMBER),
-            weaviate.classes.config.Property(name="cognitive_load_score", data_type=weaviate.classes.config.DataType.NUMBER),
-            weaviate.classes.config.Property(name="decision_quality", data_type=weaviate.classes.config.DataType.NUMBER),
-            weaviate.classes.config.Property(name="transaction_type", data_type=weaviate.classes.config.DataType.TEXT),
+            Property(name="transaction_id", data_type=DataType.TEXT),
+            Property(name="category", data_type=DataType.TEXT),
+            Property(name="amount", data_type=DataType.NUMBER),
+            Property(name="cognitive_load_score", data_type=DataType.NUMBER),
+            Property(name="decision_quality", data_type=DataType.NUMBER),
+            Property(name="transaction_type", data_type=DataType.TEXT),
         ]
     )
-    print("✅ Schema created: SentioTransaction")
+
+    # 2. Semantic Cache Collection
+    if client.collections.exists("SentioCache"):
+        client.collections.delete("SentioCache")
+
+    client.collections.create(
+        name="SentioCache",
+        vectorizer_config=Configure.Vectorizer.text2vec_ollama(
+            api_endpoint="http://host.docker.internal:11434",
+            model="nomic-embed-text",
+        ),
+        properties=[
+            Property(name="query", data_type=DataType.TEXT),
+            Property(name="response", data_type=DataType.TEXT),
+        ]
+    )
+    
+    print("✅ Vault & Cache Schemas Initialized with Ollama.")
     client.close()
 
 if __name__ == "__main__":
-    setup_schema()
+    setup_sentio_vault()
