@@ -20,3 +20,8 @@ python-dotenv
 langgraph
 langchain-ollama
 langchain-core
+
+
+fastapi
+uvicorn
+pydantic
