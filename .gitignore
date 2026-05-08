@@ -1,0 +1,64 @@
+# --- AI & Environment Secrets (CRITICAL) ---
+.env
+.env.local
+.langchain_api/
+langsmith_traces/
+
+# --- Python & Dependencies ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+equivault/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Databases & Vector Stores ---
+# If you run Weaviate locally via Docker, these are often handled by Docker volumes, 
+# but ignore local data dumps just in case.
+weaviate_data/
+*.db
+*.sqlite3
+
+# --- Unit Tests & Coverage ---
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# --- Operating System ---
+.DS_Store
+.DS_Store?
+._*
+Thumds.db
+ehthumbs.db
+Desktop.ini
+
+# --- Editor Specific ---
+.vscode/
+.idea/
+*.swp
+*.swo
