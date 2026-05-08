@@ -1,0 +1,14 @@
+[
+  {
+    "query": "Total spent on groceries",
+    "expected_ids": ["T0035", "T0032"],
+    "expected_total": 1762.27,
+    "must_mention": ["Groceries", "T0035", "T0032"]
+  },
+  {
+    "query": "EMI expenses",
+    "expected_ids": ["T0045"],
+    "expected_total": 4015.42,
+    "must_mention": ["EMI", "T0045"]
+  }
+]

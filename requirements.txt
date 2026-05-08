@@ -25,3 +25,5 @@ langchain-core
 fastapi
 uvicorn
 pydantic
+streamlit
+pytest
