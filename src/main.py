@@ -2,6 +2,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from src.sentio_orchestrator import sentio_app
 import uuid
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
 
 app = FastAPI(title="Sentio Vault API", version="1.0.0")
 
