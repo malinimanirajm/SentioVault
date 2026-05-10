@@ -61,4 +61,14 @@ Desktop.ini
 .vscode/
 .idea/
 *.swp
+<<<<<<< HEAD
 *.swo
+=======
+*.swo
+
+
+#---- AWS & Cloud ---
+.aws/
+credentials
+*.pem
+>>>>>>> e878e87 (added aws)
