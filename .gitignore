@@ -72,3 +72,4 @@ Desktop.ini
 credentials
 *.pem
 >>>>>>> e878e87 (added aws)
+.env
