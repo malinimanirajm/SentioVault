@@ -3,7 +3,9 @@ from weaviate.classes.config import Configure, DataType, Property
 
 def setup_sentio_vault():
     client = weaviate.connect_to_local(port=8081)
-    
+
+    # 1. Transaction Collection (Knowledge Graph Node)
+
     if client.collections.exists("SentioTransaction"):
         client.collections.delete("SentioTransaction")
         
@@ -21,6 +23,7 @@ def setup_sentio_vault():
         ]
     )
     print("✅ Local Weaviate Schema Initialized.")
+
     client.close()
 
 if __name__ == "__main__":
