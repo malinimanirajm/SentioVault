@@ -26,28 +26,50 @@ def ingest_data(csv_path):
     client = weaviate.connect_to_local(port=int(os.getenv("WEAVIATE_PORT", 8081)))
     try:
         df = pd.read_csv(csv_path)
+        
+        # Normalize Column Names (Remove spaces and make lowercase)
         df.columns = [c.strip().lower() for c in df.columns]
+        
+        # Handle typo/normalization for the specific HCI columns
         df = df.fillna(0.0)
 
         collection = client.collections.get("SentioTransaction")
         objects = []
+        
+        print(f"📊 Processing {len(df)} financial records...")
+
         for _, row in df.iterrows():
+            # Mapping the CSV columns to our Weaviate Schema
             props = {
                 "transaction_id": str(row.get("transaction_id", "0")),
-                "category": str(row.get("category", "Unknown")),
+                "user_id": str(row.get("user_id", "unknown_user")),
+                "category": str(row.get("category", "Uncategorized")),
                 "amount": float(row.get("amount", 0.0)),
-                "transaction_type": str(row.get("transaction_type", "Debit"))
+                "transaction_type": str(row.get("transaction_type", "Debit")),
+                "cognitive_load_score": float(row.get("cognitive_load_score", 0.0)),
+                "decision_quality": float(row.get("decision_quality", 0.0)),
+                "feedback_score": float(row.get("feedback_score", 0.0))
             }
+            
             objects.append(weaviate.classes.data.DataObject(
                 properties=props,
                 uuid=generate_uuid5(props["transaction_id"])
             ))
 
-        print(f"🚀 Ingesting {len(objects)} records...")
-        collection.data.insert_many(objects)
-        print("✅ Local Ingestion Complete.")
+        print(f"🚀 Ingesting records into local Weaviate vault...")
+        result = collection.data.insert_many(objects)
+        
+        if result.has_errors:
+            print(f"❌ Errors during ingestion: {result.errors}")
+        else:
+            print("✅ Ingestion Complete. Data is now searchable by User_ID and Category.")
+
+    except Exception as e:
+        print(f"❌ An error occurred: {e}")
     finally:
         client.close()
+        print("🔌 Weaviate connection closed.")
 
 if __name__ == "__main__":
+    # Ensure this matches your actual CSV filename
     ingest_data("financial_hci_dataset.csv")
