@@ -2,89 +2,102 @@
 
 # 🧠 Sentio Vault: Psychologically-Aware Financial Agent
 
-Sentio Vault is a next-generation financial intelligence system that correlates fiscal data with psychological metrics. Unlike traditional expense trackers, Sentio uses **Agentic RAG (Retrieval-Augmented Generation)** to analyze the "Cognitive Load" behind transactions, providing safety guardrails when financial decisions are made under high stress.
+Sentio Vault is a next-generation financial intelligence system that correlates fiscal data with psychological metrics. Unlike traditional expense trackers, Sentio uses **Agentic RAG (Retrieval-Augmented Generation)** to analyze the "Cognitive Load" behind transactions, providing safety guardrails and insights when financial decisions are made under high stress.
 
 ## 🏗️ Technical Architecture
 
-The system is built on a **Modular Node-Based Architecture** using LangGraph, ensuring stateful, multi-step reasoning.
+The system is built on a **Modular Node-Based Architecture** using LangGraph, ensuring stateful, multi-step reasoning and mathematical verification.
 
-*   **Vector Vault:** Weaviate v4 (Local) with `text2vec-openai` for semantic retrieval.
-*   **Orchestration:** LangGraph state machine with conditional routing and persistence.
-*   **State Management:** `TypedDict` state tracking for query context, cognitive load, and relevance grading.
+* **Hybrid Vector Vault:** Weaviate v4 (Local) with `nomic-embed-text` (Ollama) for private, local semantic retrieval.
+* **Cloud Intelligence:** Powered by **Amazon Bedrock (Nova Micro)** for high-speed, cost-effective reasoning.
+* **State Management:** `TypedDict` state tracking for query context, User ID isolation, and cognitive load scores.
+* **Durable Backups:** Automated transaction mirroring to **AWS S3**.
 
 ### The Workflow Logic
-1.  **Research Node:** Executes a semantic search against the Weaviate collection.
-2.  **Grader Node:** A reflective check that evaluates if the retrieved data is relevant to the user query.
-3.  **Safety Gate (Conditional):** Analyzes the `cognitive_load_score`. 
-    *   If **> 0.8**, it routes to the **Compliance Node** to trigger a safety lockout.
-    *   If **< 0.8**, it routes to the **Analyzer Node** for standard financial insights.
+
+1. **Cache Check:** Checks Weaviate for similar past queries to reduce LLM latency and costs.
+2. **Research Node:** Executes a **filtered** semantic search (**User_ID + Category**) against the Weaviate collection.
+3. **Analyzer Node:** Generates financial insights, specifically flagging high `cognitive_load_score` entries.
+4. **Reflection Node (Self-Correction):** A secondary agentic pass that critiques the analysis for mathematical accuracy and safety compliance before reaching the user.
 
 ---
 
 ## 🛠️ Tech Stack
 
 | Component | Technology |
-| :--- | :--- |
-| **Language** | Python 3.10+ |
-| **Vector Database** | Weaviate v4 |
+| --- | --- |
 | **Agent Framework** | LangGraph |
-| **LLM Integration** | LangChain / OpenAI |
-| **Data Handling** | Pandas |
+| **LLM Reasoning** | Amazon Bedrock (Nova Micro) |
+| **Vector Database** | Weaviate v4 (Local) |
+| **Embeddings** | Ollama (Nomic-Embed-Text) |
+| **API Framework** | FastAPI |
+| **Frontend UI** | Streamlit |
+| **Cloud Storage** | AWS S3 |
 
 ---
 
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-Ensure you have [Docker](https://www.docker.com/) installed to run the local Weaviate instance.
 
-### 2. Installation
-```bash
-git clone https://github.com/your-repo/sentio-vault.git
-cd sentio-vault
-pip install -r requirements.txt
-```
+* [Docker](https://www.docker.com/) (to run Weaviate)
+* [Ollama](https://ollama.com/) (running `nomic-embed-text` model)
+* AWS CLI configured with Amazon Bedrock access.
 
-### 3. Environment Setup
-Create a `.env` file:
+### 2. Environment Setup
+
+Create a `.env` file in the root directory (this file is git-ignored for security):
+
 ```env
-OPENAI_API_KEY=your_sk_key_here
+AWS_REGION="us-east-1"
+S3_BUCKET_NAME="your-unique-vault-name"
+WEAVIATE_PORT=8081
+
 ```
 
-### 4. Initialization Pipeline
-Run the scripts in order to set up the database and ingest your data:
+### 3. Initialization Pipeline
+
+Execute the scripts in order to establish the environment:
+
 ```bash
-# Step 1: Create the Weaviate Schema
+# Step 1: Initialize the HCI-Ready Schema
 python setup_vault.py
 
-# Step 2: Clean and Ingest Financial Data
+# Step 2: Backup to S3 and Ingest Local Data
 python ingest_data.py
 
-# Step 3: Launch the Agentic Orchestrator
-python sentio_orchestrator.py
+# Step 3: Launch the Backend API
+python main.py
+
+# Step 4: Start the Streamlit Dashboard
+streamlit run app.py
+
 ```
 
 ---
 
 ## 📊 Data Schema: `SentioTransaction`
 
-The Weaviate collection is configured with the following properties:
+The system processes 22 distinct parameters, focusing on these core properties for agentic reasoning:
 
 | Property | Type | Description |
-| :--- | :--- | :--- |
-| `transaction_id` | Text | Unique identifier (used for UUIDv5 generation). |
-| `category` | Text | Spending category (e.g., Entertainment, Food). |
+| --- | --- | --- |
+| `user_id` | Text | Ensures strict data isolation in multi-user environments. |
+| `category` | Text | Primary filter for contextual retrieval. |
 | `amount` | Number | Transaction value in USD. |
-| `cognitive_load_score` | Number | **Critical Metric:** 0.0 to 1.0 (Stress/Load level). |
-| `decision_quality` | Number | User-reported or calculated quality of the purchase. |
+| `cognitive_load_score` | Number | **HCI Metric:** 0.0 to 1.0 (Stress/Mental effort during purchase). |
+| `decision_quality` | Number | Qualitative assessment of the financial choice. |
 
 ---
 
-## 🛡️ Safety Features
-*   **Circuit Breaker:** The `compliance_node` prevents the LLM from providing financial advice if the retrieved context indicates the user is in a "High Stress" state.
-*   **Persistence:** Uses `MemorySaver` to maintain thread-specific history, allowing for multi-turn conversations about financial trends.
+## 🛡️ Safety & Privacy
+
+* **Multi-Tenant Isolation:** Uses Weaviate's `Filter` class to ensure a user can **only** retrieve their own financial data.
+* **Local-First Retrieval:** Raw transaction data and embeddings remain local; only relevant anonymized context is passed to the LLM.
+* **Reflective Logic:** The `reflection_node` acts as a guardrail, catching hallucinations or calculation errors before they reach the user interface.
 
 ---
 
 ## 📝 License
+
 This project is licensed under the MIT License - see the LICENSE file for details.
