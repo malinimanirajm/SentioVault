@@ -2,7 +2,7 @@ import uuid
 import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from sentio_orchestrator import sentio_app
+from src.sentio_orchestrator import sentio_app
 from dotenv import load_dotenv
 
 # Load environment variables

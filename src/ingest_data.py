@@ -41,15 +41,16 @@ def ingest_data(csv_path):
         for _, row in df.iterrows():
             # Mapping the CSV columns to our Weaviate Schema
             props = {
-                "transaction_id": str(row.get("transaction_id", "0")),
-                "user_id": str(row.get("user_id", "unknown_user")),
-                "category": str(row.get("category", "Uncategorized")),
-                "amount": float(row.get("amount", 0.0)),
-                "transaction_type": str(row.get("transaction_type", "Debit")),
-                "cognitive_load_score": float(row.get("cognitive_load_score", 0.0)),
-                "decision_quality": float(row.get("decision_quality", 0.0)),
-                "feedback_score": float(row.get("feedback_score", 0.0))
-            }
+        "transaction_id": str(row.get("transaction_id", "0")),
+        "user_id": str(row.get("user_id", "unknown_user")),
+        "category": str(row.get("category", "Uncategorized")),
+        "amount": float(row.get("amount", 0.0)),
+        "transaction_type": str(row.get("transaction_type", "Debit")),
+        # Ensure these match your actual data values
+        "cognitive_load_score": float(row.get("cognitive_load_score", 0.0)),
+        "decision_quality": float(row.get("decision_quality", 0.0)),
+        "feedback_score": float(row.get("feedback_score", 0.0))
+    }
             
             objects.append(weaviate.classes.data.DataObject(
                 properties=props,
