@@ -13,8 +13,8 @@ load_dotenv()
 # --- 1. State Definition ---
 class SentioState(TypedDict):
     user_query: str
-    user_id: str      # NEW: Tracks which user is asking
-    category: str     # NEW: Tracks the specific filter
+    user_id: str      # Tracks which user is asking
+    category: str     # Tracks the specific filter
     context: str
     analysis: str
     reflection_count: int
@@ -34,8 +34,14 @@ def cache_check_node(state: SentioState):
     client = weaviate.connect_to_local(port=int(os.getenv("WEAVIATE_PORT", 8081)))
     try:
         cache = client.collections.get("SentioCache")
-        # Semantic match within user's specific context could be added here
-        result = cache.query.near_text(query=state["user_query"], limit=1)
+        
+        # STEP 1 IMPLEMENTED: Strict multi-tenant isolation for the cache layer
+        result = cache.query.near_text(
+            query=state["user_query"], 
+            limit=1,
+            filters=Filter.by_property("user_id").equal(state["user_id"])
+        )
+        
         if result.objects:
             return {"final_output": result.objects[0].properties["response"], "is_cached": True}
         return {"is_cached": False}
