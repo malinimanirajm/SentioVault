@@ -13,8 +13,8 @@ load_dotenv()
 # --- 1. State Definition ---
 class SentioState(TypedDict):
     user_query: str
-    user_id: str      # Tracks which user is asking
-    category: str     # Tracks the specific filter
+    user_id: str      
+    category: str     
     context: str
     analysis: str
     reflection_count: int
@@ -35,7 +35,6 @@ def cache_check_node(state: SentioState):
     try:
         cache = client.collections.get("SentioCache")
         
-        # STEP 1 IMPLEMENTED: Strict multi-tenant isolation for the cache layer
         result = cache.query.near_text(
             query=state["user_query"], 
             limit=1,
@@ -53,7 +52,6 @@ def researcher_node(state: SentioState):
     try:
         vault = client.collections.get("SentioTransaction")
 
-        # CRITICAL: Pre-filter by User_ID and Category
         response = vault.query.near_text(
             query=state["user_query"],
             limit=15,
@@ -63,18 +61,41 @@ def researcher_node(state: SentioState):
             ])
         )
 
-        context = "\n".join([str(o.properties) for o in response.objects])
-        return {"context": context, "reflection_count": 0}
+        # STEP 2 IMPLEMENTED: Programmatically aggregate and clean the context
+        transactions = []
+        total_cognitive_load = 0.0
+        count = len(response.objects)
+
+        for o in response.objects:
+            props = o.properties
+            amount = props.get("amount", 0.0)
+            t_type = props.get("transaction_type", "Debit")
+            cognitive_load = float(props.get("cognitive_load_score", 0.0))
+            
+            transactions.append(f"- Amount: ${amount}, Type: {t_type}, Cognitive Load: {cognitive_load}")
+            total_cognitive_load += cognitive_load
+
+        avg_cognitive_load = (total_cognitive_load / count) if count > 0 else 0.0
+
+        # Create a highly structured context string for the LLM
+        structured_context = f"Calculated Metrics:\n- Average Cognitive Load Score: {avg_cognitive_load:.2f}\n- Total Record Count: {count}\n\n"
+        structured_context += "Transaction Details:\n" + "\n".join(transactions)
+
+        return {"context": structured_context, "reflection_count": 0}
     finally:
         client.close()
 
 def analyzer_node(state: SentioState):
+    # STEP 3 IMPLEMENTED: Upgraded instructions utilizing the calculated metrics
     prompt = (
-        f"You are Sentio, analyzing data for User: {state['user_id']}.\n"
-        f"Context (Transactions & HCI Metrics):\n{state['context']}\n\n"
-        f"User Query: {state['user_query']}\n"
-        "Instructions: Summarize spending. If 'cognitive_load_score' is high (>0.7), "
-        "suggest a simpler financial view or automated budgeting to reduce stress."
+        f"You are Sentio, an expert financial HCI agent analyzing data for User: {state['user_id']}.\n\n"
+        f"Context & Calculated Metrics:\n{state['context']}\n\n"
+        f"User Query: {state['user_query']}\n\n"
+        "Instructions:\n"
+        "1. Summarize spending and transaction trends strictly using the data provided.\n"
+        "2. Evaluate the 'Average Cognitive Load Score'. If it is high (>0.7), you must explicitly "
+        "conclude your analysis with concrete stress-reduction advice (e.g., recommend a simplified financial view, "
+        "automated budgeting, or reducing visual dashboard friction)."
     )
     res = llm.invoke(prompt)
     return {"analysis": res.content}
@@ -115,9 +136,9 @@ sentio_app = builder.compile(checkpointer=memory)
 if __name__ == "__main__":
     # Local Test Case
     test_inputs = {
-        "user_query": "How is my grocery spending looking?",
-        "user_id": "user_123", # Make sure this exists in your CSV
-        "category": "Groceries"
+        "user_query": "How is my investment profile looking?",
+        "user_id": "T0015", 
+        "category": "Investment"
     }
     config = {"configurable": {"thread_id": "test_run"}}
     for event in sentio_app.stream(test_inputs, config):
