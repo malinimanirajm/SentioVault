@@ -50,15 +50,19 @@ def researcher_node(state: SentioState):
     client = weaviate.connect_to_local(port=int(os.getenv("WEAVIATE_PORT", 8081)))
     try:
         vault = client.collections.get("SentioTransaction")
+        
+        # Defensive Normalization inside the Graph Node
+        target_id = str(state["user_id"]).strip().upper()
+        target_category = str(state["category"]).strip().title()
+
         response = vault.query.near_text(
             query=state["user_query"],
             limit=15,
             filters=Filter.all_of([
-                Filter.by_property("user_id").equal(state["user_id"]),
-                Filter.by_property("category").equal(state["category"])
+                Filter.by_property("user_id").equal(target_id),
+                Filter.by_property("category").equal(target_category)
             ])
         )
-
         transactions = []
         total_cognitive_load = 0.0
         count = len(response.objects)
