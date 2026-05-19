@@ -28,7 +28,7 @@ def setup_sentio_vault():
     )
     print("✅ SentioTransaction Schema Initialized.")
 
-    # 2. Cache Collection (FIX: Added user_id for multi-tenancy)
+    # 2. Cache Collection 
     if client.collections.exists("SentioCache"):
         print("🗑️ Removing existing Cache collection...")
         client.collections.delete("SentioCache")
@@ -40,13 +40,12 @@ def setup_sentio_vault():
             model="nomic-embed-text",
         ),
         properties=[
-            Property(name="user_id", data_type=DataType.TEXT),  # <-- THE FIX
+            Property(name="user_id", data_type=DataType.TEXT),  
             Property(name="query", data_type=DataType.TEXT),
             Property(name="response", data_type=DataType.TEXT),
         ]
     )
-    print("✅ SentioCache Schema Initialized with multi-tenant user_id.")
-
+    print("✅ SentioCache Schema Initialized.")
     client.close()
 
 if __name__ == "__main__":
